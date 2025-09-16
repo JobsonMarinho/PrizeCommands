@@ -10,6 +10,7 @@ import me.metallicgoat.prizecommands.Prize;
 import me.metallicgoat.prizecommands.config.ConfigValue;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 import java.time.Duration;
@@ -38,7 +39,7 @@ public class LoseWinPrizes implements Listener {
   }
 
   // Add players back if they rejoin
-  @EventHandler
+  @EventHandler(priority = EventPriority.MONITOR)
   public void onRejoin(PlayerRejoinArenaEvent e) {
     final Arena arena = e.getArena();
 

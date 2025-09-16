@@ -17,6 +17,7 @@ public class ConfigValue {
   public static List<Prize> playerFinalKillPrize = buildExampleList("Prize-2", "Prize-3");
   public static List<Prize> playerBreakBreakBedPrize = buildExampleList("Prize-1");
   public static List<Prize> playerEarnAchievementPrize = buildExampleList("Prize-1", "Prize-2");
+  public static List<Prize> playerDeflectFireballPrize = buildExampleList("Prize-1");
   public static List<Prize> playerJoinArenaPrize = buildExampleList("Prize-1", "Prize-2", "Prize-3");
   public static List<Prize> playerStartGamePrize = buildExampleList("Prize-1");
   public static List<Prize> playerLeaveArenaPrize = buildExampleList("Prize-1", "Prize-3");

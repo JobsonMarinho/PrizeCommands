@@ -11,8 +11,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class PrizeCommandsPlugin extends JavaPlugin {
 
-  public static final int MIN_MBEDWARS_API_VER = 100;
-  public static final String MIN_MBEDWARS_VER_NAME = "5.4";
+  public static final int MIN_MBEDWARS_API_VER = 205;
+  public static final String MIN_MBEDWARS_VER_NAME = "5.5.5";
 
   @Getter
   private static PrizeCommandsAddon addon;
@@ -51,6 +51,7 @@ public class PrizeCommandsPlugin extends JavaPlugin {
     manager.registerEvents(new PlayerConnections(), this); // Join & Leave & Rejoin
     manager.registerEvents(new AchievementEarnPrize(), this);
     manager.registerEvents(new GameStartPrize(), this);
+    manager.registerEvents(new FireballDeflectPrize(), this);
   }
 
   private boolean checkMBedwars() {

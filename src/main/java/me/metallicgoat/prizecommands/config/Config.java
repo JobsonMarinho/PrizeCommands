@@ -84,6 +84,7 @@ public class Config {
     ConfigValue.playerFinalKillPrize = buildPrizeList(config.getStringList("Final-Kill-Prizes"));
     ConfigValue.playerBreakBreakBedPrize = buildPrizeList(config.getStringList("Bed-Break-Prizes"));
     ConfigValue.playerEarnAchievementPrize = buildPrizeList(config.getStringList("Earn-Achievement-Prizes"));
+    ConfigValue.playerDeflectFireballPrize = buildPrizeList(config.getStringList("Deflect-Fireball-Prizes"));
     ConfigValue.playerJoinArenaPrize = buildPrizeList(config.getStringList("Join-Arena-Prizes"));
     ConfigValue.playerStartGamePrize = buildPrizeList(config.getStringList("Start-Game-Prizes"));
     ConfigValue.playerLeaveArenaPrize = buildPrizeList(config.getStringList("Leave-Arena-Prizes"));
@@ -130,6 +131,7 @@ public class Config {
     config.set("Final-Kill-Prizes", buildPrizeIdList(ConfigValue.playerFinalKillPrize));
     config.set("Bed-Break-Prizes", buildPrizeIdList(ConfigValue.playerBreakBreakBedPrize));
     config.set("Earn-Achievement-Prizes", buildPrizeIdList(ConfigValue.playerEarnAchievementPrize));
+    config.set("Deflect-Fireball-Prizes", buildPrizeIdList(ConfigValue.playerDeflectFireballPrize));
     config.set("Join-Arena-Prizes", buildPrizeIdList(ConfigValue.playerJoinArenaPrize));
     config.set("Start-Game-Prizes", buildPrizeIdList(ConfigValue.playerStartGamePrize));
     config.set("Leave-Arena-Prizes", buildPrizeIdList(ConfigValue.playerLeaveArenaPrize));

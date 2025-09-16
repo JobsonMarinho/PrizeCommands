@@ -8,12 +8,16 @@ import me.metallicgoat.prizecommands.Prize;
 import me.metallicgoat.prizecommands.config.ConfigValue;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 public class PlayerConnections implements Listener {
 
-  @EventHandler
+  @EventHandler(priority = EventPriority.MONITOR)
   public void onPlayerJoinArena(PlayerJoinArenaEvent event) {
+    if (event.hasIssues())
+      return;
+
     final Arena arena = event.getArena();
     final Player player = event.getPlayer();
 
@@ -30,8 +34,11 @@ public class PlayerConnections implements Listener {
       prize.earn(arena, player, null);
   }
 
-  @EventHandler
+  @EventHandler(priority = EventPriority.MONITOR)
   public void onPlayerRejoinArena(PlayerRejoinArenaEvent event) {
+    if (event.hasIssues())
+      return;
+
     final Arena arena = event.getArena();
     final Player player = event.getPlayer();
 
