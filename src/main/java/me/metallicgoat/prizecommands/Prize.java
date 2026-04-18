@@ -7,14 +7,12 @@ import de.marcely.bedwars.api.arena.picker.condition.ArenaConditionGroup;
 import de.marcely.bedwars.api.exception.ArenaConditionParseException;
 import de.marcely.bedwars.api.message.Message;
 import de.marcely.bedwars.tools.Helper;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import me.metallicgoat.prizecommands.config.ConfigValue;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.Nullable;
 
 
 @AllArgsConstructor
@@ -116,7 +114,10 @@ public class Prize {
   }
 
   public boolean isArenaSupported(Arena arena) {
-    for (String arenaName : supportedArenasNames) {
+    if (this.supportedArenasNames == null)
+      return true;
+
+    for (String arenaName : this.supportedArenasNames) {
       try {
         final ArenaConditionGroup group = ArenaPickerAPI.get().parseCondition(arenaName);
 

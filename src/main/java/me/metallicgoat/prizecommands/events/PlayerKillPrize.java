@@ -1,8 +1,8 @@
 package me.metallicgoat.prizecommands.events;
 
-import de.marcely.bedwars.api.BedwarsAPI;
 import de.marcely.bedwars.api.arena.Arena;
 import de.marcely.bedwars.api.arena.Team;
+import de.marcely.bedwars.api.event.player.PlayerKillPlayerEvent;
 import de.marcely.bedwars.tools.Helper;
 import me.metallicgoat.prizecommands.Prize;
 import me.metallicgoat.prizecommands.config.ConfigValue;
@@ -10,7 +10,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.PlayerDeathEvent;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,12 +17,15 @@ import java.util.List;
 public class PlayerKillPrize implements Listener {
 
   @EventHandler
-  public void onFinalKill(PlayerDeathEvent event) {
-    final Player victim = event.getEntity();
-    final Arena arena = BedwarsAPI.getGameAPI().getArenaByPlayer(victim);
+  public void onFinalKill(PlayerKillPlayerEvent event) {
+    if (!event.isCountingKillStats())
+      return;
 
-    if (arena != null && event.getEntity().getKiller() != null) {
-      final Player killer = event.getEntity().getKiller();
+    final Player victim = event.getPlayer();
+    final Player killer = event.getKiller();
+    final Arena arena = event.getArena();
+
+    if (arena != null && killer != null) {
       final Location killerLoc = killer.getLocation();
       final Team team = arena.getPlayerTeam(victim);
       final Team killerTeam = arena.getPlayerTeam(killer);
