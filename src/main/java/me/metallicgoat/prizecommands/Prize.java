@@ -7,16 +7,22 @@ import de.marcely.bedwars.api.arena.picker.condition.ArenaConditionGroup;
 import de.marcely.bedwars.api.exception.ArenaConditionParseException;
 import de.marcely.bedwars.api.message.Message;
 import de.marcely.bedwars.tools.Helper;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import me.metallicgoat.prizecommands.config.ConfigValue;
+import me.metallicgoat.prizecommands.economy.PrizePayoutService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 
 @AllArgsConstructor
 public class Prize {
+
+  // Special "commands" that are batched instead of dispatched. See earnUnsafe() / handleBatch().
+  private static final String MONEY_PREFIX = "[money-give]";
+  private static final String BATCH_PREFIX = "[batch:";
 
   public final String prizeId;
   public final String permission;
@@ -50,9 +56,36 @@ public class Prize {
         && !player.hasPermission(permission))
       return;
 
+    final PrizePayoutService payout = PrizeCommandsPlugin.getInstance().getPayoutService();
+    double moneyEarned = 0D;
+
     if (commands != null) {
-      for (String cmd : commands)
+      for (String cmd : commands) {
+        if (cmd == null || cmd.trim().isEmpty())
+          continue;
+
+        // [money-give] <amount> -> accumulate and pay through Vault when the player leaves
+        if (isToken(cmd, MONEY_PREFIX)) {
+          final Double amount = parseMoneyAmount(cmd);
+
+          if (amount != null) {
+            payout.addMoney(player, amount);
+            moneyEarned += amount;
+          } else {
+            warnBadToken(cmd, "invalid or missing amount");
+          }
+
+          continue;
+        }
+
+        // [batch:<amount>] <command with {total}> -> sum and run once on leave
+        if (isToken(cmd, BATCH_PREFIX)) {
+          handleBatch(cmd, player, payout);
+          continue;
+        }
+
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), formatString(player, arena, cmd, placeholderReplacements));
+      }
     }
 
     if (playerCommands != null) {
@@ -60,15 +93,106 @@ public class Prize {
         player.performCommand(formatString(player, arena, cmd, placeholderReplacements));
     }
 
-    if (broadcast != null) {
-      for (String msg : broadcast)
-        arena.broadcast(formatMessage(player, arena, msg, placeholderReplacements));
+    // Messages get two extra placeholders so the config can tell the player what they earned,
+    // even though the money is only handed over later, in one batch.
+    if (broadcast != null || privateMessage != null) {
+      final Map<String, String> msgReplacements =
+          placeholderReplacements != null ? new HashMap<>(placeholderReplacements) : new HashMap<>();
+
+      msgReplacements.put("money-earned", PrizePayoutService.formatAmount(moneyEarned));
+      msgReplacements.put("money-pending", PrizePayoutService.formatAmount(payout.getPendingMoney(player.getUniqueId())));
+
+      if (broadcast != null) {
+        for (String msg : broadcast)
+          arena.broadcast(formatMessage(player, arena, msg, msgReplacements));
+      }
+
+      if (privateMessage != null) {
+        for (String msg : privateMessage)
+          player.sendMessage(formatString(player, arena, msg, msgReplacements));
+      }
+    }
+  }
+
+  // Returns true if cmd (ignoring surrounding whitespace) starts with the given token prefix.
+  private static boolean isToken(String cmd, String prefix) {
+    final String trimmed = cmd.trim();
+
+    return trimmed.length() >= prefix.length()
+        && trimmed.substring(0, prefix.length()).equalsIgnoreCase(prefix);
+  }
+
+  // Parses the amount out of "[money-give] <amount>", tolerating an optional player token in
+  // between (e.g. "[money-give] {player-real-name} 50") by taking the last whitespace token.
+  private static Double parseMoneyAmount(String cmd) {
+    final String rest = cmd.trim().substring(MONEY_PREFIX.length()).trim();
+
+    if (rest.isEmpty())
+      return null;
+
+    final String[] parts = rest.split("\\s+");
+
+    return parsePositiveDouble(parts[parts.length - 1]);
+  }
+
+  // Parses "[batch:<amount>] <command template>" and queues it. The template must contain {total},
+  // which is replaced by the accumulated sum when the batch is finally run.
+  private void handleBatch(String cmd, Player player, PrizePayoutService payout) {
+    final String trimmed = cmd.trim();
+    final int close = trimmed.indexOf(']');
+
+    if (close < 0) {
+      warnBadToken(cmd, "missing ']'");
+      return;
     }
 
-    if (privateMessage != null) {
-      for (String msg : privateMessage)
-        player.sendMessage(formatString(player, arena, msg, placeholderReplacements));
+    final Double amount = parsePositiveDouble(trimmed.substring(BATCH_PREFIX.length(), close).trim());
+
+    if (amount == null) {
+      warnBadToken(cmd, "invalid or missing amount");
+      return;
     }
+
+    final String template = trimmed.substring(close + 1).trim();
+
+    if (template.isEmpty()) {
+      warnBadToken(cmd, "missing command template");
+      return;
+    }
+
+    if (!template.contains("{total}")) {
+      warnBadToken(cmd, "template is missing the {total} placeholder");
+      return;
+    }
+
+    payout.addBatchedCommand(player, resolvePlayerPlaceholders(template, player), amount);
+  }
+
+  private static Double parsePositiveDouble(String s) {
+    try {
+      final double value = Double.parseDouble(s);
+
+      if (value <= 0D || Double.isNaN(value) || Double.isInfinite(value))
+        return null;
+
+      return value;
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  // Resolves only player-scoped placeholders (the player is the same at pay-out time; the arena may
+  // not be). {total} is intentionally left untouched - it is filled in when the batch runs.
+  private static String resolvePlayerPlaceholders(String s, Player player) {
+    return s
+        .replace("{player-real-name}", player.getName())
+        .replace("{player-display-name}", Helper.get().getPlayerDisplayName(player))
+        .replace("{player-uuid}", player.getUniqueId().toString());
+  }
+
+  private void warnBadToken(String cmd, String reason) {
+    PrizeCommandsPlugin.getInstance().getLogger()
+        .warning("Prize '" + this.prizeId + "': ignoring malformed token '" + cmd + "' (" + reason + ")");
   }
 
   private String formatString(Player player, Arena arena, String string, Map<String, String> placeholderReplacements) {

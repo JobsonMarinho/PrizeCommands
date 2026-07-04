@@ -7,6 +7,7 @@ import de.marcely.bedwars.api.event.arena.RoundStartEvent;
 import de.marcely.bedwars.api.event.player.PlayerQuitArenaEvent;
 import de.marcely.bedwars.api.event.player.PlayerRejoinArenaEvent;
 import me.metallicgoat.prizecommands.Prize;
+import me.metallicgoat.prizecommands.PrizeCommandsPlugin;
 import me.metallicgoat.prizecommands.config.ConfigValue;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -33,18 +34,22 @@ public class LoseWinPrizes implements Listener {
   @EventHandler
   public void onLeaveArena(PlayerQuitArenaEvent e) {
     final Arena arena = e.getArena();
+    // May be null if the plugin was loaded while this arena was already running
+    final List<Player> activePlayers = playing.get(arena);
 
-    if (arena.getStatus() == ArenaStatus.RUNNING && isPastMinPlayTime(arena))
-      playing.get(arena).remove(e.getPlayer());
+    if (activePlayers != null && arena.getStatus() == ArenaStatus.RUNNING && isPastMinPlayTime(arena))
+      activePlayers.remove(e.getPlayer());
   }
 
   // Add players back if they rejoin
   @EventHandler(priority = EventPriority.MONITOR)
   public void onRejoin(PlayerRejoinArenaEvent e) {
     final Arena arena = e.getArena();
+    // May be null if the plugin was loaded while this arena was already running
+    final List<Player> activePlayers = playing.get(arena);
 
-    if (arena.getStatus() == ArenaStatus.RUNNING && e.getIssues().isEmpty())
-      playing.get(arena).add(e.getPlayer());
+    if (activePlayers != null && arena.getStatus() == ArenaStatus.RUNNING && e.getIssues().isEmpty())
+      activePlayers.add(e.getPlayer());
   }
 
   // Run commands on game end
@@ -67,6 +72,11 @@ public class LoseWinPrizes implements Listener {
 
         for (Prize prize : endPrize)
           prize.earn(arena, player, placeholderReplacements);
+
+        // Offline players got their PlayerQuitArenaEvent (and pay-out) when they disconnected, so
+        // nothing would flush what was just accumulated. Pay it now (Vault handles offline players).
+        if (!player.isOnline())
+          PrizeCommandsPlugin.getInstance().getPayoutService().flush(player.getUniqueId());
       }
     }
     playing.remove(arena);

@@ -5,3 +5,4 @@ main: me.metallicgoat.prizecommands.PrizeCommandsPlugin
 api-version: 1.13
 description: PrizeCommands for MBedwars
 depend: [ MBedwars ]
+softdepend: [ Vault ]

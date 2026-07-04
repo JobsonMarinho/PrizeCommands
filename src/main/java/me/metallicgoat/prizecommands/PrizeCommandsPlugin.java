@@ -2,6 +2,7 @@ package me.metallicgoat.prizecommands;
 
 import lombok.Getter;
 import me.metallicgoat.prizecommands.config.Config;
+import me.metallicgoat.prizecommands.economy.PrizePayoutService;
 import me.metallicgoat.prizecommands.events.*;
 import me.metallicgoat.prizecommands.util.Metrics;
 import org.bukkit.Bukkit;
@@ -19,11 +20,16 @@ public class PrizeCommandsPlugin extends JavaPlugin {
   @Getter
   private static PrizeCommandsPlugin instance;
 
+  @Getter
+  private PrizePayoutService payoutService;
+
   public void onEnable() {
     instance = this;
 
     if (!checkMBedwars()) return;
     if (!registerAddon()) return;
+
+    this.payoutService = new PrizePayoutService(this);
 
     new Metrics(this, 11774);
 
@@ -52,6 +58,14 @@ public class PrizeCommandsPlugin extends JavaPlugin {
     manager.registerEvents(new AchievementEarnPrize(), this);
     manager.registerEvents(new GameStartPrize(), this);
     manager.registerEvents(new FireballDeflectPrize(), this);
+    manager.registerEvents(new EconomyPayoutListener(), this); // Pays out batched prizes on quit
+  }
+
+  @Override
+  public void onDisable() {
+    // Pay out anything still owed so a graceful restart (/stop, /reload) doesn't lose it
+    if (this.payoutService != null)
+      this.payoutService.flushAll();
   }
 
   private boolean checkMBedwars() {
